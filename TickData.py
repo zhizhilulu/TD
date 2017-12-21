@@ -297,6 +297,8 @@ class QuoteData(object):
         Close: A float array of Close quotes prices
         Volume: A float array of quote Volume
         Amount: A float array of quote Amount
+        BarLength: An int indicates the time length of a bar based on BarType
+        BarType: A str indicates Bar type, values in {'min','hour','day'}
 
     Methods:
         info: print out Quote Data information
@@ -319,6 +321,15 @@ class QuoteData(object):
 
     def info(self):
         print("Contract = " + self.Contract)
+        print("Bar Feature = " + str(self.BarLength) + ' ' + self.BarType)
+        DateSet = np.unique(self.Date)
+        strlist = ''
+        for date in DateSet:
+            strlist = strlist + '' + dt.datetime.strftime(date, '%Y%m%d') + ', '
+        print("Date in { " + strlist[:-1] + " }")
+        print("Time Length = %d" % len(self.Time))
+        print("Open, High, Low, Close, Volume, Amount Lengths are \n%7.2f|%7.2f|%7.2f|%7.2f|%7.2f|%7.2f|%7.2f"
+              % (self.Open, self.High, self.Low, self.Close, self.Volume, self.Amount))
 
 
 if __name__ == '__main__':
