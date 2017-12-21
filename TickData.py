@@ -182,7 +182,6 @@ class TickData(object):
         self.BidVolume = np.array(matcontent['TickData'][:, 5])
         self.AskVolume = np.array(matcontent['TickData'][:, 6])
 
-
     def calcVPIN(self, bucketsize=200, sigma=10, winlen=10):
         # calculate VPIN value on daily bases
         calendar = np.unique(self.TickDate)
@@ -236,6 +235,8 @@ class TickData(object):
         vpinfinal.Value = vpinvalue[1:]
         return vpinfinal
 
+    def toQuote(self, length = 1, type = ''):
+
 class VPINData(object):
     '''VPIN Data
 
@@ -281,6 +282,13 @@ class VPINData(object):
         print("Bucket Size = %d\nWindowLength = %d" % (self.BucketSize, self.WindowLength))
         print("Time Length = %d" % len(self.Time))
         print("VPIN Value Length = %d" % len(self.Value))
+
+class QuoteData(object):
+    """Quote Data of Specific Security
+    Attributes:
+        Date: A
+
+    """
 
 
 if __name__ == '__main__':
