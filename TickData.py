@@ -331,6 +331,9 @@ class QuoteData(object):
         print("Open, High, Low, Close, Volume, Amount Lengths are \n%7.2f|%7.2f|%7.2f|%7.2f|%7.2f|%7.2f|%7.2f"
               % (self.Open, self.High, self.Low, self.Close, self.Volume, self.Amount))
 
+    def plot(self):
+        pass
+
 
 if __name__ == '__main__':
     csvfiles = [r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171208.csv',
