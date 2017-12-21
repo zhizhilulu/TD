@@ -236,6 +236,7 @@ class TickData(object):
         return vpinfinal
 
     def toQuote(self, length = 1, type = ''):
+        pass
 
 class VPINData(object):
     '''VPIN Data
@@ -266,6 +267,7 @@ class VPINData(object):
         :param key: int index or datetime refer to the specific VPIN
         :return:
         '''
+        pass
 
     def info(self):
         '''
@@ -286,9 +288,37 @@ class VPINData(object):
 class QuoteData(object):
     """Quote Data of Specific Security
     Attributes:
-        Date: A
+        Contract: A string of security name
+        Date: A datetime array of trading dates
+        Time: A datetime array of quotes start time
+        Open: A float array of Open quote prices
+        High: A float array of High quote prices
+        Low: A float array of Low quote prices
+        Close: A float array of Close quotes prices
+        Volume: A float array of quote Volume
+        Amount: A float array of quote Amount
+
+    Methods:
+        info: print out Quote Data information
+        plot: plot Candles Chart
 
     """
+
+    def __init__(self, contractname='', length=np.nan, type=''):
+        self.Contract = contractname
+        self.Date = dt.datetime(1900, 1, 1)
+        self.Time = dt.datetime(1900, 1, 1)
+        self.Open = np.nan
+        self.High = np.nan
+        self.Low = np.nan
+        self.Close = np.nan
+        self.Volume = np.nan
+        self.Amount = np.nan
+        self.BarLength = length
+        self.BarType = type
+
+    def info(self):
+        print("Contract = " + self.Contract)
 
 
 if __name__ == '__main__':
