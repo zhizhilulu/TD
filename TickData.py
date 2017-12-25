@@ -2,9 +2,12 @@
 
 import numpy as np
 import datetime as dt
+import matplotlib.pyplot as plt
+import re
 from scipy.io import loadmat
 from scipy.stats import norm
 from pandas import read_csv
+
 
 
 
@@ -284,6 +287,28 @@ class VPINData(object):
         print("Bucket Size = %d\nWindowLength = %d" % (self.BucketSize, self.WindowLength))
         print("Time Length = %d" % len(self.Time))
         print("VPIN Value Length = %d" % len(self.Value))
+
+    def plot(self, savingpath=''):
+        '''
+        make a plot of the vpin instance and save it if provided saving path
+        :return: none
+        '''
+
+        if len(self.Date) == 1:
+            return
+        titlestr = self.Contract + " in"
+        for date in np.unique(self.Date):
+            titlestr.join(" " + date + " ")
+        plt.plot(self.Value)
+        plt.grid(True)
+        plt.title(titlestr)
+        if savingpath != '':
+            plt.savefig(savingpath+re.sub(' ', '_', titlestr))
+
+
+
+
+
 
 class QuoteData(object):
     """Quote Data of Specific Security
