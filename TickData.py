@@ -9,10 +9,6 @@ from scipy.stats import norm
 from pandas import read_csv
 
 
-
-
-
-
 class TickData(object):
     """Tick Data of Specific Security
 
@@ -298,15 +294,15 @@ class VPINData(object):
             return
         titlestr = self.Contract + " in"
         for date in np.unique(self.Date):
-            titlestr.join(" " + date + " ")
+            titlestr += " " + dt.datetime.strftime(date,'%Y%m%d')
+        plt.figure(figsize=(16,9))
         plt.plot(self.Value)
+        plt.xlabel('Time Label')
+        plt.ylabel('VPIN Value')
         plt.grid(True)
         plt.title(titlestr)
         if savingpath != '':
             plt.savefig(savingpath+re.sub(' ', '_', titlestr))
-
-
-
 
 
 
@@ -361,27 +357,42 @@ class QuoteData(object):
 
 
 if __name__ == '__main__':
-    csvfiles = [r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171208.csv',
-                r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171211.csv',
-                r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171212.csv',
-                r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171213.csv',
-                r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171214.csv']
-    DateStrs = ['20171208','20171211','20171212','20171213','20171214']
-    DatePres = ['20171207','20171208','20171211','20171212','20171213']
+    # csvfiles = [r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171208.csv',
+    #             r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171211.csv',
+    #             r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171212.csv',
+    #             r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171213.csv',
+    #             r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171214.csv']
+
+    csvfiles = ['/Users/zhizhilulu/Documents/TickData/ni1805_20171208.csv',
+                '/Users/zhizhilulu/Documents/TickData/ni1805_20171211.csv',
+                '/Users/zhizhilulu/Documents/TickData/ni1805_20171212.csv',
+                '/Users/zhizhilulu/Documents/TickData/ni1805_20171213.csv',
+                '/Users/zhizhilulu/Documents/TickData/ni1805_20171214.csv']
+
+    DateStrs = ['20171208', '20171211', '20171212', '20171213', '20171214']
+    DatePres = ['20171207', '20171208', '20171211', '20171212', '20171213']
     csvL = []
     for i in range(5):
         csvtest = TickData()
-        csvtest.readfromCSV(csvfiles[i],1,'ni1805',DateStrs[i],DatePres[i])
+        csvtest.readfromCSV(csvfiles[i], 1, 'ni1805', DateStrs[i], DatePres[i])
         csvL.append(csvtest)
     aa = csvL[0].calcVPIN()
+    aa.plot()
 
 
 
-    matfiles = [r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171208.mat',
-                r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171211.mat',
-                r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171212.mat',
-                r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171213.mat',
-                r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171214.mat']
+    # matfiles = [r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171208.mat',
+    #             r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171211.mat',
+    #             r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171212.mat',
+    #             r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171213.mat',
+    #             r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171214.mat']
+
+    matfiles = ['/Users/zhizhilulu/Documents/MarketMaking/MatTickData/ni1805_20171208.mat',
+                '/Users/zhizhilulu/Documents/MarketMaking/MatTickData/ni1805_20171211.mat',
+                '/Users/zhizhilulu/Documents/MarketMaking/MatTickData/ni1805_20171212.mat',
+                '/Users/zhizhilulu/Documents/MarketMaking/MatTickData/ni1805_20171213.mat',
+                '/Users/zhizhilulu/Documents/MarketMaking/MatTickData/ni1805_20171214.mat']
+
     DateStrs = ['20171208', '20171211', '20171212', '20171213', '20171214']
     matL = []
     for i in range(5):
