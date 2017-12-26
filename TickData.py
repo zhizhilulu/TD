@@ -292,17 +292,21 @@ class VPINData(object):
 
         if len(self.Date) == 1:
             return
-        titlestr = self.Contract + " in"
+        titlestr = self.Contract + "\n"
         for date in np.unique(self.Date):
             titlestr += " " + dt.datetime.strftime(date,'%Y%m%d')
-        plt.figure(figsize=(16,9))
-        plt.plot(self.Value)
-        plt.xlabel('Time Label')
-        plt.ylabel('VPIN Value')
-        plt.grid(True)
-        plt.title(titlestr)
+        titlestr += '\n'
+        titlestr += "Bucket Size = %4.f | VPIN Window = %4.f" % (self.BucketSize, self.WindowLength)
+        fig = plt.figure(figsize=(16,9))
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+        ax.plot(self.Value)
+        ax.get_xaxis()
+        ax.set_xlabel('Time Label')
+        ax.set_ylabel('VPIN Value')
+        ax.grid(True)
+        ax.set_title(titlestr)
         if savingpath != '':
-            plt.savefig(savingpath+re.sub(' ', '_', titlestr))
+            fig.savefig(savingpath+re.sub(' ', '_', titlestr))
 
 
 
@@ -357,11 +361,11 @@ class QuoteData(object):
 
 
 if __name__ == '__main__':
-    # csvfiles = [r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171208.csv',
-    #             r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171211.csv',
-    #             r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171212.csv',
-    #             r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171213.csv',
-    #             r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171214.csv']
+    csvfiles = [r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171208.csv',
+                r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171211.csv',
+                r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171212.csv',
+                r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171213.csv',
+                r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171214.csv']
 
     csvfiles = ['/Users/zhizhilulu/Documents/TickData/ni1805_20171208.csv',
                 '/Users/zhizhilulu/Documents/TickData/ni1805_20171211.csv',
