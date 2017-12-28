@@ -181,7 +181,7 @@ class TickData(object):
         self.BidVolume = np.array(matcontent['TickData'][:, 5])
         self.AskVolume = np.array(matcontent['TickData'][:, 6])
 
-    def calcVPIN(self, bucketsize=200, sigma=10, winlen=10):
+    def calcVPIN(self, bucketsize=200, sigma=10, winlen=50):
         # calculate VPIN value on daily bases
         calendar = np.unique(self.TickDate)
         vpintime = np.empty([1, 1])
@@ -299,8 +299,30 @@ class VPINData(object):
         titlestr += "Bucket Size = %4.f | VPIN Window = %4.f" % (self.BucketSize, self.WindowLength)
         fig = plt.figure(figsize=(16,9))
         ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+
+        # 多天VPIN以日期为MajorTickLabel，小时为minorTickLabel
+        # 一天VPIN以小时为MajorTickLabel，半小时为minorTickLabel
+        if np.unique(self.Date).size == 1:
+            def truncatemin(x):
+                return x.replace(minute=0, second=0, microsecond=0)
+            xtimelabels = np.unique(list(map(truncatemin, self.Time.tolist())))
+            xmajortickpos = []
+            xtimelabelStr = []
+            for xtime in xtimelabels:
+                xmajortickpos.append(np.argmax(self.Time >= xtime))
+                xtimelabelStr.append(dt.datetime.strftime(xtime,'%Y%m%d-%H'))
+
+
+
+
+
+
+
+
+        ax.set_xticks(xmajortickpos)
+        ax.set_xticklabels(xtimelabelStr)
+        ax.minorticks_on()
         ax.plot(self.Value)
-        ax.get_xaxis()
         ax.set_xlabel('Time Label')
         ax.set_ylabel('VPIN Value')
         ax.grid(True)
@@ -367,11 +389,11 @@ if __name__ == '__main__':
                 r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171213.csv',
                 r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171214.csv']
 
-    csvfiles = ['/Users/zhizhilulu/Documents/TickData/ni1805_20171208.csv',
-                '/Users/zhizhilulu/Documents/TickData/ni1805_20171211.csv',
-                '/Users/zhizhilulu/Documents/TickData/ni1805_20171212.csv',
-                '/Users/zhizhilulu/Documents/TickData/ni1805_20171213.csv',
-                '/Users/zhizhilulu/Documents/TickData/ni1805_20171214.csv']
+    # csvfiles = ['/Users/zhizhilulu/Documents/TickData/ni1805_20171208.csv',
+    #             '/Users/zhizhilulu/Documents/TickData/ni1805_20171211.csv',
+    #             '/Users/zhizhilulu/Documents/TickData/ni1805_20171212.csv',
+    #             '/Users/zhizhilulu/Documents/TickData/ni1805_20171213.csv',
+    #             '/Users/zhizhilulu/Documents/TickData/ni1805_20171214.csv']
 
     DateStrs = ['20171208', '20171211', '20171212', '20171213', '20171214']
     DatePres = ['20171207', '20171208', '20171211', '20171212', '20171213']
@@ -381,6 +403,7 @@ if __name__ == '__main__':
         csvtest.readfromCSV(csvfiles[i], 1, 'ni1805', DateStrs[i], DatePres[i])
         csvL.append(csvtest)
     aa = csvL[0].calcVPIN()
+    # bb = sum(csvL, csvL[0]).calcVPIN()
     aa.plot()
 
 
