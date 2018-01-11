@@ -435,27 +435,44 @@ class SpreadTickData(object):
             self.TickDate = np.concatenate((self.TickDate, np.full(ticklist.shape, date)))
         Aloc = np.where(np.isin(self.TickTime, TickDataA.TickTime))[0]
         Aloc_absence = np.setdiff1d(range(len(self.TickTime)), Aloc)
-        ValueA = np.zeros(self.TickTime.shape)
+        ValueA = np.full(self.TickTime.shape, np.nan)
         ValueA[Aloc] = TickDataA.__getattribute__(ValueTypeA)
         if len(Aloc_absence) > 0:
             if 0 in Aloc_absence:
-                ValueA[Aloc_absence[1:]] = ValueA[Aloc_absence[1:]-1]
-            else:
-                ValueA[Aloc_absence] = ValueA[Aloc_absence-1]
+                np.delete(Aloc_absence, 0)
+            for abid in Aloc_absence:
+                ValueA[abid] = ValueA[abid-1]
         Bloc = np.where(np.isin(self.TickTime, TickDataB.TickTime))[0]
         Bloc_absence = np.setdiff1d(range(len(self.TickTime)), Bloc)
-        ValueB = np.zeros(self.TickTime.shape)
+        ValueB = np.full(self.TickTime.shape, np.nan)
         ValueB[Bloc] = TickDataB.__getattribute__(ValueTypeB)
         if len(Bloc_absence) > 0:
             if 0 in Bloc_absence:
-                ValueB[Bloc_absence[1:]] = ValueB[Aloc_absence[1:] - 1]
-            else:
-                ValueB[Bloc_absence] = ValueB[Bloc_absence - 1]
+                np.delete(Bloc_absence, 0)
+            for abid in Bloc_absence:
+                ValueB[abid] = ValueB[abid-1]
         self.ValueTypeA = ValueTypeA
         self.ValueTypeB = ValueTypeB
         self.SpreadValue = ValueA - ValueB
+        self.computeType = computeType
 
+    def info(self):
+        ''' print out the SpreadTickData Instance Information like
 
+        :return:
+        '''
+        print("Contracts are " + self.ContractA + ' and ' + self.ContractB)
+        print(self.ContractA+'@'+self.ValueTypeA + ' ' + self.computeType + ' ' + self.ContractB+'@'+self.ValueTypeB)
+        strlist = ''
+        for Date in np.unique(self.TickDate):
+            strlist = strlist + '' + dt.datetime.strftime(Date, '%Y%m%d') + ','
+        print("TickDate in {" + strlist[:-1] + '}')
+        print("TickTime Length = %d | SpreadValue Length = %d " % (len(self.TickTime), len(self.SpreadValue)))
+    def plot(self):
+        '''
+
+        :return:
+        '''
 
 
 
@@ -524,23 +541,30 @@ if __name__ == '__main__':
         hedgedata.append(htmp)
         dutydata.append(dtmp)
 
-    test = SpreadTickData(dutydata[0],hedgedata[0])
+    TickDataA = dutydata[0]+dutydata[1]
+    TickDataB = hedgedata[0]+hedgedata[1]
 
-    # matfiles = [r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171208.mat',
-    #             r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171211.mat',
-    #             r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171212.mat',
-    #             r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171213.mat',
-    #             r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171214.mat']
+    test = SpreadTickData(TickDataA, TickDataB)
+    test.info()
+    TickDataA.info()
+    TickDataB.info()
 
-    matfiles = ['/Users/zhizhilulu/Documents/MarketMaking/MatTickData/ni1805_20171208.mat',
-                '/Users/zhizhilulu/Documents/MarketMaking/MatTickData/ni1805_20171211.mat',
-                '/Users/zhizhilulu/Documents/MarketMaking/MatTickData/ni1805_20171212.mat',
-                '/Users/zhizhilulu/Documents/MarketMaking/MatTickData/ni1805_20171213.mat',
-                '/Users/zhizhilulu/Documents/MarketMaking/MatTickData/ni1805_20171214.mat']
 
-    DateStrs = ['20171208', '20171211', '20171212', '20171213', '20171214']
-    matL = []
-    for i in range(5):
-        mattest = TickData()
-        mattest.readfromMAT(matfiles[i], 'ni1805', DateStrs[i])
-        matL.append(mattest)
+    # # matfiles = [r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171208.mat',
+    # #             r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171211.mat',
+    # #             r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171212.mat',
+    # #             r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171213.mat',
+    # #             r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171214.mat']
+    #
+    # matfiles = ['/Users/zhizhilulu/Documents/MarketMaking/MatTickData/ni1805_20171208.mat',
+    #             '/Users/zhizhilulu/Documents/MarketMaking/MatTickData/ni1805_20171211.mat',
+    #             '/Users/zhizhilulu/Documents/MarketMaking/MatTickData/ni1805_20171212.mat',
+    #             '/Users/zhizhilulu/Documents/MarketMaking/MatTickData/ni1805_20171213.mat',
+    #             '/Users/zhizhilulu/Documents/MarketMaking/MatTickData/ni1805_20171214.mat']
+    #
+    # DateStrs = ['20171208', '20171211', '20171212', '20171213', '20171214']
+    # matL = []
+    # for i in range(5):
+    #     mattest = TickData()
+    #     mattest.readfromMAT(matfiles[i], 'ni1805', DateStrs[i])
+    #     matL.append(mattest)
