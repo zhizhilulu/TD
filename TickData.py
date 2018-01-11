@@ -237,6 +237,7 @@ class TickData(object):
     def toQuote(self, length = 1, type = ''):
         pass
 
+
 class VPINData(object):
     '''VPIN Data
 
@@ -300,8 +301,8 @@ class VPINData(object):
         fig = plt.figure(figsize=(16,9))
         ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
 
-        # 多天VPIN以日期为MajorTickLabel，小时为minorTickLabel
-        # 一天VPIN以小时为MajorTickLabel，半小时为minorTickLabel
+        # 多天VPIN以日期为MajorTickLabel，小时为minorTickLabel(待实现）
+        # 一天VPIN以小时为MajorTickLabel，半小时为minorTickLabel（待实现）
         if np.unique(self.Date).size == 1:
             def truncatemin(x):
                 return x.replace(minute=0, second=0, microsecond=0)
@@ -310,18 +311,20 @@ class VPINData(object):
             xtimelabelStr = []
             for xtime in xtimelabels:
                 xmajortickpos.append(np.argmax(self.Time >= xtime))
-                xtimelabelStr.append(dt.datetime.strftime(xtime,'%Y%m%d-%H'))
-
-
-
-
-
-
-
-
+                xtimelabelStr.append(dt.datetime.strftime(xtime, '%Y%m%d-%H'))
+        else:
+            def truncatehour(x):
+                return x.replace(hour=0, minute=0, second=0, microsecond=0)
+            xtimelabels = np.unique(list(map(truncatehour, self.Time.tolist())))
+            xmajortickpos = []
+            xtimelabelStr = []
+            for xtime in xtimelabels:
+                xmajortickpos.append(np.argmax(self.Time >= xtime))
+                xtimelabelStr.append(dt.datetime.strftime(xtime, '%Y%m%d'))
         ax.set_xticks(xmajortickpos)
         ax.set_xticklabels(xtimelabelStr)
-        ax.minorticks_on()
+        ax.tick_params(rotation=45)
+        # ax.minorticks_on()
         ax.plot(self.Value)
         ax.set_xlabel('Time Label')
         ax.set_ylabel('VPIN Value')
@@ -329,7 +332,6 @@ class VPINData(object):
         ax.set_title(titlestr)
         if savingpath != '':
             fig.savefig(savingpath+re.sub(' ', '_', titlestr))
-
 
 
 class QuoteData(object):
@@ -382,31 +384,129 @@ class QuoteData(object):
         pass
 
 
+class SpreadTickData(object):
+    """ Spread Data in Tick Level
+
+    Attributes:
+        ContractA: A string represents name of contract A
+        ContractB: A string represents name of contract B
+        TickDate: A datetime array of trading date of every tick
+        TickTime: A datetime array of time stamp of every tick
+        SpreadValue: A float array of spread value of every tick
+        ValueTypeA: A string represents the type of value related to contract A
+        ValueTypeB: A string represents the type of value related to contract B
+
+    Methods:
+        info: print out the TickData information including contract name, dates included and length of ticks
+        readfromCSV: read TickData from CSV files (two types : 1 homemade by Bro Zhao & 2 purchased)
+                    type 1 requires the specific trading date and the date of night as well as the contract name
+                    type 2 requires only the specific trading date as well as the contract name
+        readfromMAT: read TickData from MAT files (made by ZhiZhi)
+                    requires the specific trading date as well as the contract name
+        calcVPIN: calculate VPIN value
+
+    """
+
+    def __init__(self, TickDataA=TickData(), TickDataB=TickData(), ValueTypeA='LastPrice', ValueTypeB='LastPrice', computeType='minus'):
+        self.ContractA = TickDataA.Contract
+        self.ContractB = TickDataB.Contract
+        if not list(np.unique(TickDataA.TickDate)) == list(np.unique(TickDataB.TickDate)):
+            raise ValueError('TickDatas NOT share same trading dates')
+        TickDateSet = np.unique(TickDataA.TickDate)
+        self.TickTime = np.empty(0)
+        self.TickDate = np.empty(0)
+        for date in TickDateSet:
+            ticklist = np.unique(np.concatenate((TickDataA.TickTime[TickDataA.TickDate == date], TickDataB.TickTime[TickDataB.TickDate == date])))
+            self.TickTime = np.concatenate((self.TickTime, ticklist))
+            self.TickDate = np.concatenate((self.TickDate, np.full(ticklist.shape, date)))
+        Aloc = np.where(np.isin(self.TickTime, TickDataA.TickTime))[0]
+        Aloc_absence = np.setdiff1d(range(len(self.TickTime)), Aloc)
+        ValueA = np.zeros(self.TickTime.shape)
+        ValueA[Aloc] = TickDataA.__getattribute__(ValueTypeA)
+        if 0 in Aloc_absence:
+            ValueA[Aloc_absence[1:]] = ValueA[Aloc_absence[1:]-1]
+        else:
+            ValueA[Aloc_absence] = ValueA[Aloc_absence-1]
+        Bloc = np.where(np.isin(self.TickTime, TickDataB.TickTime))[0]
+        Bloc_absence = np.setdiff1d(range(len(self.TickTime)), Bloc)
+        ValueB = np.zeros(self.TickTime.shape)
+        ValueB[Bloc] = TickDataB.__getattribute__(ValueTypeB)
+        if 0 in Bloc_absence:
+            ValueB[Bloc_absence[1:]] = ValueB[Aloc_absence[1:] - 1]
+        else:
+            ValueB[Bloc_absence] = ValueB[Bloc_absence - 1]
+        self.ValueTypeA = ValueTypeA
+        self.ValueTypeB = ValueTypeB
+        self.SpreadValue = ValueA - ValueB
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 if __name__ == '__main__':
-    csvfiles = [r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171208.csv',
-                r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171211.csv',
-                r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171212.csv',
-                r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171213.csv',
-                r'D:\Job\WorkinPython\MarketMaking\TickData\ni1805_20171214.csv']
 
-    # csvfiles = ['/Users/zhizhilulu/Documents/TickData/ni1805_20171208.csv',
-    #             '/Users/zhizhilulu/Documents/TickData/ni1805_20171211.csv',
-    #             '/Users/zhizhilulu/Documents/TickData/ni1805_20171212.csv',
-    #             '/Users/zhizhilulu/Documents/TickData/ni1805_20171213.csv',
-    #             '/Users/zhizhilulu/Documents/TickData/ni1805_20171214.csv']
+    hedgefiles = [r'D:\TickData\ni1805_20171221.csv', r'D:\TickData\ni1805_20171222.csv',
+              r'D:\TickData\ni1805_20171225.csv', r'D:\TickData\ni1805_20171226.csv',
+              r'D:\TickData\ni1805_20171227.csv', r'D:\TickData\ni1805_20171228.csv',
+              r'D:\TickData\ni1805_20171229.csv', r'D:\TickData\ni1805_20180102.csv',
+              r'D:\TickData\ni1805_20180103.csv', r'D:\TickData\ni1805_20180104.csv',
+              r'D:\TickData\ni1805_20180105.csv', r'D:\TickData\ni1805_20180108.csv',
+              r'D:\TickData\ni1805_20180109.csv', r'D:\TickData\ni1805_20180110.csv']
 
-    DateStrs = ['20171208', '20171211', '20171212', '20171213', '20171214']
-    DatePres = ['20171207', '20171208', '20171211', '20171212', '20171213']
-    csvL = []
-    for i in range(5):
-        csvtest = TickData()
-        csvtest.readfromCSV(csvfiles[i], 1, 'ni1805', DateStrs[i], DatePres[i])
-        csvL.append(csvtest)
-    aa = csvL[0].calcVPIN()
-    # bb = sum(csvL, csvL[0]).calcVPIN()
-    aa.plot()
+    dutyfiles = [r'D:\TickData\ni1807_20171221.csv', r'D:\TickData\ni1807_20171222.csv',
+              r'D:\TickData\ni1807_20171225.csv', r'D:\TickData\ni1807_20171226.csv',
+              r'D:\TickData\ni1807_20171227.csv', r'D:\TickData\ni1807_20171228.csv',
+              r'D:\TickData\ni1807_20171229.csv', r'D:\TickData\ni1807_20180102.csv',
+              r'D:\TickData\ni1807_20180103.csv', r'D:\TickData\ni1807_20180104.csv',
+              r'D:\TickData\ni1807_20180105.csv', r'D:\TickData\ni1807_20180108.csv',
+              r'D:\TickData\ni1807_20180109.csv', r'D:\TickData\ni1807_20180110.csv']
 
+    DateStrs = ['20171221', '20171222', '20171225', '20171226', '20171227', '20171228',
+                '20171229', '20180102', '20180103', '20180104', '20180105', '20180108',
+                '20180109', '20180110']
+    DatePres = ['20171220', '20171221', '20171222', '20171225', '20171226', '20171227',
+                '20171228', '20171229', '20180102', '20180103', '20180104', '20180105',
+                '20180108', '20180109']
 
+    hedgedata = []
+    dutydata = []
+    for i in range(len(DateStrs)):
+        htmp = TickData()
+        dtmp = TickData()
+        htmp.readfromCSV(hedgefiles[i], 1, 'ni1805', DateStrs[i], DatePres[i])
+        dtmp.readfromCSV(dutyfiles[i], 1, 'ni1807', DateStrs[i], DatePres[i])
+        hedgedata.append(htmp)
+        dutydata.append(dtmp)
 
     # matfiles = [r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171208.mat',
     #             r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171211.mat',
