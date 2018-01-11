@@ -45,6 +45,7 @@ class TickData(object):
         self.AskPrice = np.nan
         self.BidVolume = np.nan
         self.AskVolume = np.nan
+        self.MidPrice = np.nan
 
     def __getitem__(self, key):
         '''
@@ -53,9 +54,9 @@ class TickData(object):
         :return: numpy array of the specific line of the TickData
         '''
         # get specific line of TickData
-        return np.array([self.TickDate[key], self.TickTime[key], self.LastPrice[key],
-                         self.Volume[key], self.Amount[key], self.BidPrice[key],
-                         self.AskPrice[key], self.BidVolume[key], self.AskVolume[key]])
+        return np.array([self.TickDate[key], self.TickTime[key], self.LastPrice[key], self.MidPrice[key],
+                         self.Volume[key], self.Amount[key], self.BidVolume[key], self.BidPrice[key],
+                         self.AskPrice[key],  self.AskVolume[key]])
 
     def __add__(self, other):
         '''
@@ -85,6 +86,7 @@ class TickData(object):
         tmp.AskVolume = np.concatenate((self.AskVolume, other.AskVolume[np.isin(other.TickDate, tmpRep)]), axis=0)
         tmp.BidPrice = np.concatenate((self.BidPrice, other.BidPrice[np.isin(other.TickDate, tmpRep)]), axis=0)
         tmp.AskPrice = np.concatenate((self.AskPrice, other.AskPrice[np.isin(other.TickDate, tmpRep)]), axis=0)
+        tmp.MidPrice = np.concatenate((self.MidPrice, other.MidPrice[np.isin(other.TickDate, tmpRep)]), axis=0)
         # resort the result instance regarding to TickTime
         idx = np.argsort(tmp.TickTime)
         tmp.TickDate = tmp.TickDate[idx]
@@ -93,6 +95,7 @@ class TickData(object):
         tmp.Volume = tmp.Volume[idx]
         tmp.BidPrice = tmp.BidPrice[idx]
         tmp.AskPrice = tmp.AskPrice[idx]
+        tmp.MidPrice = tmp.MidPrice[idx]
         tmp.BidVolume = tmp.BidVolume[idx]
         tmp.AskVolume = tmp.AskVolume[idx]
         tmp.TickTime = tmp.TickTime[idx]
@@ -109,9 +112,10 @@ class TickData(object):
             strlist = strlist + '' + dt.datetime.strftime(Date,'%Y%m%d') +','
 
         print("TickDate in {" + strlist[:-1] + '}')
-        print("TickTime Length = %d\nLastPrice Length = %d" % (self.TickTime.size, len(self.LastPrice)))
-        print("Volume Length = %d\nAmount Length = %d\nBidPrice Length = %d" % (len(self.Volume), len(self.Amount), len(self.BidPrice)))
-        print("AskPrice Length = %d\nBidVolume Length = %d\nAskVolume Length = %d" % (len(self.AskPrice), len(self.BidVolume), len(self.AskVolume)))
+        print("TickTime Length = %d | LastPrice Length = %d | MidPrice Length = %d" % (self.TickTime.size, len(self.LastPrice), len(self.MidPrice)))
+        print("Volume Length = %d | Amount Length = %d" % (len(self.Volume), len(self.Amount)))
+        print("BidVolume Length = %d | BidPrice Length = %d | AskPrice Length = %d | AskVolume Length = %d"
+              % (len(self.BidVolume),  len(self.BidPrice), len(self.AskPrice), len(self.AskVolume)))
 
     def readfromCSV(self,csvfile,sourceType,contractname,datestr,DatePre='19000101'):
         '''
@@ -159,6 +163,7 @@ class TickData(object):
             timeline = csvcontent['时间'].values
         self.TickTime = np.array([dt.datetime.strptime(x,'%Y-%m-%d %H:%M:%S.%f') for x in timeline])
         self.TickDate = np.full(self.TickTime.shape, dt.datetime.strptime(datestr, '%Y%m%d'))
+        self.MidPrice = (self.AskPrice + self.BidPrice) / 2
 
     def readfromMAT(self, matfile, contractname, datestr):
         '''
@@ -180,6 +185,7 @@ class TickData(object):
         self.AskPrice = np.array(matcontent['TickData'][:, 4])
         self.BidVolume = np.array(matcontent['TickData'][:, 5])
         self.AskVolume = np.array(matcontent['TickData'][:, 6])
+        self.MidPrice = (self.BidPrice + self.AskPrice) / 2
 
     def calcVPIN(self, bucketsize=200, sigma=10, winlen=50):
         # calculate VPIN value on daily bases
