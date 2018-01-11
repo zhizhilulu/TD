@@ -161,8 +161,16 @@ class TickData(object):
             self.AskPrice = np.array(csvcontent['卖一价'])
             self.AskVolume = np.array(csvcontent['卖一量'])
             timeline = csvcontent['时间'].values
-        self.TickTime = np.array([dt.datetime.strptime(x,'%Y-%m-%d %H:%M:%S.%f') for x in timeline])
+        self.TickTime = np.array([dt.datetime.strptime(x, '%Y-%m-%d %H:%M:%S.%f') for x in timeline])
+        self.TickTime, idx = np.unique(self.TickTime, return_index=True)
         self.TickDate = np.full(self.TickTime.shape, dt.datetime.strptime(datestr, '%Y%m%d'))
+        self.AskPrice = self.AskPrice[idx]
+        self.BidPrice = self.BidPrice[idx]
+        self.AskVolume = self.AskVolume[idx]
+        self.BidVolume = self.BidVolume[idx]
+        self.Amount = self.Amount[idx]
+        self.Volume = self.Volume[idx]
+        self.LastPrice = self.LastPrice[idx]
         self.MidPrice = (self.AskPrice + self.BidPrice) / 2
 
     def readfromMAT(self, matfile, contractname, datestr):
@@ -429,18 +437,20 @@ class SpreadTickData(object):
         Aloc_absence = np.setdiff1d(range(len(self.TickTime)), Aloc)
         ValueA = np.zeros(self.TickTime.shape)
         ValueA[Aloc] = TickDataA.__getattribute__(ValueTypeA)
-        if 0 in Aloc_absence:
-            ValueA[Aloc_absence[1:]] = ValueA[Aloc_absence[1:]-1]
-        else:
-            ValueA[Aloc_absence] = ValueA[Aloc_absence-1]
+        if len(Aloc_absence) > 0:
+            if 0 in Aloc_absence:
+                ValueA[Aloc_absence[1:]] = ValueA[Aloc_absence[1:]-1]
+            else:
+                ValueA[Aloc_absence] = ValueA[Aloc_absence-1]
         Bloc = np.where(np.isin(self.TickTime, TickDataB.TickTime))[0]
         Bloc_absence = np.setdiff1d(range(len(self.TickTime)), Bloc)
         ValueB = np.zeros(self.TickTime.shape)
         ValueB[Bloc] = TickDataB.__getattribute__(ValueTypeB)
-        if 0 in Bloc_absence:
-            ValueB[Bloc_absence[1:]] = ValueB[Aloc_absence[1:] - 1]
-        else:
-            ValueB[Bloc_absence] = ValueB[Bloc_absence - 1]
+        if len(Bloc_absence) > 0:
+            if 0 in Bloc_absence:
+                ValueB[Bloc_absence[1:]] = ValueB[Aloc_absence[1:] - 1]
+            else:
+                ValueB[Bloc_absence] = ValueB[Bloc_absence - 1]
         self.ValueTypeA = ValueTypeA
         self.ValueTypeB = ValueTypeB
         self.SpreadValue = ValueA - ValueB
@@ -513,6 +523,8 @@ if __name__ == '__main__':
         dtmp.readfromCSV(dutyfiles[i], 1, 'ni1807', DateStrs[i], DatePres[i])
         hedgedata.append(htmp)
         dutydata.append(dtmp)
+
+    test = SpreadTickData(dutydata[0],hedgedata[0])
 
     # matfiles = [r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171208.mat',
     #             r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171211.mat',
