@@ -409,6 +409,7 @@ class SpreadTickData(object):
         SpreadValue: A float array of spread value of every tick
         ValueTypeA: A string represents the type of value related to contract A
         ValueTypeB: A string represents the type of value related to contract B
+        computeType: A string represents the type of computation including minus
 
     Methods:
         info: print out the TickData information including contract name, dates included and length of ticks
@@ -453,8 +454,25 @@ class SpreadTickData(object):
                 ValueB[abid] = ValueB[abid-1]
         self.ValueTypeA = ValueTypeA
         self.ValueTypeB = ValueTypeB
-        self.SpreadValue = ValueA - ValueB
-        self.computeType = computeType
+        if computeType.isalpha():
+
+            if computeType == 'minus':
+                self.SpreadValue = ValueA - ValueB
+            elif computeType == 'divide':
+                self.SpreadValue = ValueA / ValueB
+            else:
+                raise ValueError(computeType + ' is not available at present')
+            self.computeType = '1' + computeType + '1'
+        else:
+            self.computeType = computeType
+            if 'minus' in computeType:
+                coefs = computeType.split('minus')
+                self.SpreadValue = ValueA * float(coefs[0]) - ValueB * float(coefs[1])
+            elif 'divide' in computeType:
+                coefs = computeType.split('divide')
+                self.SpreadValue = ValueA * float(coefs[0]) / ValueB * float(coefs[1])
+            else:
+                raise ValueError(computeType + ' is not available at present')
 
     def info(self):
         ''' print out the SpreadTickData Instance Information like
@@ -468,11 +486,53 @@ class SpreadTickData(object):
             strlist = strlist + '' + dt.datetime.strftime(Date, '%Y%m%d') + ','
         print("TickDate in {" + strlist[:-1] + '}')
         print("TickTime Length = %d | SpreadValue Length = %d " % (len(self.TickTime), len(self.SpreadValue)))
-    def plot(self):
+
+    def plot(self, savingpath=''):
         '''
 
         :return:
         '''
+        if len(self.TickDate) == 1:
+            return
+        titlestr = self.ContractA+'@'+self.ValueTypeA + ' ' + self.computeType + ' ' + self.ContractB+'@'+self.ValueTypeB + "\n"
+        for date in np.unique(self.TickDate):
+            titlestr += " " + dt.datetime.strftime(date,'%Y%m%d')
+        titlestr += '\n'
+        fig = plt.figure(figsize=(16,9))
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+
+        # 多天VPIN以日期为MajorTickLabel，小时为minorTickLabel(待实现）
+        # 一天VPIN以小时为MajorTickLabel，半小时为minorTickLabel（待实现）
+        if np.unique(self.TickDate).size == 1:
+            def truncatemin(x):
+                return x.replace(minute=0, second=0, microsecond=0)
+            xtimelabels = np.unique(list(map(truncatemin, self.TickTime.tolist())))
+            xmajortickpos = []
+            xtimelabelStr = []
+            for xtime in xtimelabels:
+                xmajortickpos.append(np.argmax(self.TickTime >= xtime))
+                xtimelabelStr.append(dt.datetime.strftime(xtime, '%Y%m%d-%H'))
+        else:
+            def truncatehour(x):
+                return x.replace(hour=0, minute=0, second=0, microsecond=0)
+            xtimelabels = np.unique(list(map(truncatehour, self.TickTime.tolist())))
+            xmajortickpos = []
+            xtimelabelStr = []
+            for xtime in xtimelabels:
+                xmajortickpos.append(np.argmax(self.TickTime >= xtime))
+                xtimelabelStr.append(dt.datetime.strftime(xtime, '%Y%m%d'))
+        ax.set_xticks(xmajortickpos)
+        ax.set_xticklabels(xtimelabelStr)
+        ax.tick_params(rotation=45)
+        # ax.minorticks_on()
+        ax.plot(self.SpreadValue)
+        ax.set_xlabel('Time Label')
+        ax.set_ylabel('Spread Value')
+        ax.grid(True)
+        ax.set_title(titlestr)
+        if savingpath != '':
+            fig.savefig(savingpath+re.sub(' ', '_', titlestr))
+        plt.show()
 
 
 
@@ -548,6 +608,8 @@ if __name__ == '__main__':
     test.info()
     TickDataA.info()
     TickDataB.info()
+    test.plot()
+
 
 
     # # matfiles = [r'D:\Job\WorkinPython\MarketMaking\MatTickData\ni1805_20171208.mat',
