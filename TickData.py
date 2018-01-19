@@ -23,6 +23,7 @@ class TickData(object):
            BidVolume: A float array of bid volume of every tick
            AskPrice: A float array of ask price of every tick
            AskVolume: A float array of ask volume of every tick
+           MidPrice: A float array of mid price = (bid + ask) / 2
        Methods:
            info: print out the TickData information including contract name, dates included and length of ticks
            readfromCSV: read TickData from CSV files (two types : 1 homemade by Bro Zhao & 2 purchased)
@@ -54,6 +55,7 @@ class TickData(object):
         :return: numpy array of the specific line of the TickData
         '''
         # get specific line of TickData
+
         return np.array([self.TickDate[key], self.TickTime[key], self.LastPrice[key], self.MidPrice[key],
                          self.Volume[key], self.Amount[key], self.BidVolume[key], self.BidPrice[key],
                          self.AskPrice[key],  self.AskVolume[key]])
@@ -251,6 +253,9 @@ class TickData(object):
     def toQuote(self, length = 1, type = ''):
         pass
 
+    def truncate(self,):
+        pass
+
 
 class VPINData(object):
     '''VPIN Data
@@ -263,6 +268,8 @@ class VPINData(object):
            BucketSize: A float specifies how many volume to build up one bucket
            WindowLength: An int specifies the how many buckets to calculate the VPIN value in a moving window form
        Methods:
+           info: print out basic infomation of the VPINData instance
+           plot: print out a plot chart of the VPINData instance
 
 
     '''
@@ -412,13 +419,9 @@ class SpreadTickData(object):
         computeType: A string represents the type of computation including minus
 
     Methods:
-        info: print out the TickData information including contract name, dates included and length of ticks
-        readfromCSV: read TickData from CSV files (two types : 1 homemade by Bro Zhao & 2 purchased)
-                    type 1 requires the specific trading date and the date of night as well as the contract name
-                    type 2 requires only the specific trading date as well as the contract name
-        readfromMAT: read TickData from MAT files (made by ZhiZhi)
-                    requires the specific trading date as well as the contract name
-        calcVPIN: calculate VPIN value
+        info: print out the SpreadTickData information
+        plot: plot out the SpreadTickData
+
 
     """
 
@@ -535,6 +538,26 @@ class SpreadTickData(object):
         plt.show()
 
 
+class OrderData(object):
+    """Order Data at Tick Level
+
+    Attributes:
+        Contract : a string represents the contract name
+        OrderTime : a datetime array represents the time of order (accurate to second)
+        OrderDate : a datetime array represents the trading date
+        AskVolume : a float array represents the volume of Ask price we quote
+        AskPrice : a float array represents the ask prices we quote
+        BidVolume : a float array represents the volume of Bid price we quote
+        BidPrice : a float array represents the bid prices we quote
+        MidPrice : a float array represents the mid prices of bid and ask prices we quoted
+        TheoPrice: a float array represents the theoretical price calculated
+        OrderSeqNum: an int array represents the Sequence Number of every order
+        ExecTime : a datetime array represents time of execution of order
+        ExecPrice : a float array represents the price of execution
+        ExecDirect : an int array represents the direction of execution, -1 stands for sell and 1 stands for buy
+        ExecVolume : a float array represents the volume of execution
+        ExecOIDir : an int array represents the Open Interest direction of execution, -1 stands for
+        ExecSeqNum : an int array represents the Sequence Number of the order executed.
 
 
 
@@ -542,31 +565,46 @@ class SpreadTickData(object):
 
 
 
+    """
+    def __init__(self, contract=''):
+        self.Contract = contract
+        self.OrderTime = dt.datetime(1900, 1, 1, 0, 0, 0)
+        self.OrderDate = dt.datetime(1900, 1, 1)
+        self.ExecTime = dt.datetime(1900, 1, 1, 0, 0, 0)
+        self.ExecVolume = np.nan
+        self.ExecDirect = np.nan
+        self.ExecPrice = np.nan
+        self.ExecOIDir = np.nan
+        self.ExecSeqNum = np.nan
+        self.AskVolume = np.nan
+        self.AskPrice = np.nan
+        self.MidPrice = np.nan
+        self.BidPrice = np.nan
+        self.BidVolume = np.nan
+        self.TheoPrice = np.nan
+        self.OrderSeqNum =np.nan
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    def readData(self,orderfile,execfile,contract):
+        self.Contract = contract
+        ordercsv = read_csv(orderfile)
+        execcsv = read_csv(execfile)
+        # order data processing
+        ordercsv = ordercsv[ordercsv['委托合约'] == contract]
+        execcsv = execcsv[execcsv['成交合约'] == contract]
 
 
 
 
 if __name__ == '__main__':
+
+
+    orderfiles = [r'D:\OrderData\ni_20180117_Submitted.csv',
+                  r'D:\OrderData\ni_20180118_Submitted.csv']
+    execfiles = [r'D:\OrderData\ni_20180117_Executed.csv',
+                 r'D:\OrderData\ni_20180118_Executed.csv']
+
 
     hedgefiles = [r'D:\TickData\ni1805_20171221.csv', r'D:\TickData\ni1805_20171222.csv',
               r'D:\TickData\ni1805_20171225.csv', r'D:\TickData\ni1805_20171226.csv',
