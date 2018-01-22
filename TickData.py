@@ -444,8 +444,8 @@ class SpreadTickData(object):
         if len(Aloc_absence) > 0:
             if 0 in Aloc_absence:
                 np.delete(Aloc_absence, 0)
-            for abid in Aloc_absence:
-                ValueA[abid] = ValueA[abid-1]
+            for absidx in Aloc_absence:
+                ValueA[absidx] = ValueA[absidx-1]
         Bloc = np.where(np.isin(self.TickTime, TickDataB.TickTime))[0]
         Bloc_absence = np.setdiff1d(range(len(self.TickTime)), Bloc)
         ValueB = np.full(self.TickTime.shape, np.nan)
@@ -453,8 +453,8 @@ class SpreadTickData(object):
         if len(Bloc_absence) > 0:
             if 0 in Bloc_absence:
                 np.delete(Bloc_absence, 0)
-            for abid in Bloc_absence:
-                ValueB[abid] = ValueB[abid-1]
+            for absidx in Bloc_absence:
+                ValueB[absidx] = ValueB[absidx-1]
         self.ValueTypeA = ValueTypeA
         self.ValueTypeB = ValueTypeB
         if computeType.isalpha():
@@ -490,7 +490,29 @@ class SpreadTickData(object):
         print("TickDate in {" + strlist[:-1] + '}')
         print("TickTime Length = %d | SpreadValue Length = %d " % (len(self.TickTime), len(self.SpreadValue)))
 
-    def plot(self, savingpath=''):
+    def BollBand(self, alpha=2, mean=np.nan, std=np.nan):
+        ''' calculate the bollinger band based on paras transed
+
+        :param alpha:
+        :param mean:
+        :param std:
+        :return:
+        '''
+
+        lowerband = np.full(self.SpreadValue.shape, mean - alpha * std)
+        upperband = np.full(self.SpreadValue.shape, mean + alpha * std)
+
+        return lowerband, upperband
+
+
+
+
+
+
+
+
+
+    def plot(self, savingpath='', **kwargs):
         '''
 
         :return:
@@ -528,14 +550,33 @@ class SpreadTickData(object):
         ax.set_xticklabels(xtimelabelStr)
         ax.tick_params(rotation=45)
         # ax.minorticks_on()
-        ax.plot(self.SpreadValue)
+        ax.plot(self.SpreadValue, label='Spread Value', linewidth=0.3)
+        if 'lowerband' in kwargs:
+            ax.plot(kwargs['lowerband'], label='Lower Band', color='green')
+            ax.fill_between(range(len(self.SpreadValue)),kwargs['lowerband'],self.SpreadValue.min(),where=self.SpreadValue < kwargs['lowerband'], facecolors='green')
+        if 'upperband' in kwargs:
+            ax.plot(kwargs['upperband'], label='Upper Band', color='red')
+            ax.fill_between(range(len(self.SpreadValue)), self.SpreadValue.max(),self.SpreadValue.min(), where=self.SpreadValue > kwargs['upperband'], facecolors='red')
+        if 'dutyvolume' in kwargs:
+            volax = ax.twinx()
+            volax.set_ylabel('Volume')
+            volax.bar(range(len(self.SpreadValue)), kwargs['dutyvolume'], color='cyan')
+        if 'mmtradevol' in kwargs:
+            try:
+                volax.bar(kwargs['mmtradevol'])
+            except:
+                volax = ax.twinx()
+                volax.set_ylabel('Volume')
+                volax.bar(range(len(self.SpreadValue)), kwargs['mmtradevol'], color='deeppink')
+
+
         ax.set_xlabel('Time Label')
         ax.set_ylabel('Spread Value')
         ax.grid(True)
         ax.set_title(titlestr)
-        if savingpath != '':
-            fig.savefig(savingpath+re.sub(' ', '_', titlestr))
         plt.show()
+        if savingpath != '':
+            fig.savefig(savingpath+re.sub(' |\n', '_', titlestr))
 
 
 class OrderData(object):
