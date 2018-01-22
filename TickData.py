@@ -504,14 +504,6 @@ class SpreadTickData(object):
 
         return lowerband, upperband
 
-
-
-
-
-
-
-
-
     def plot(self, savingpath='', **kwargs):
         '''
 
@@ -561,15 +553,27 @@ class SpreadTickData(object):
             volax = ax.twinx()
             volax.set_ylabel('Volume')
             volax.bar(range(len(self.SpreadValue)), kwargs['dutyvolume'], color='cyan')
-        if 'mmtradevol' in kwargs:
+        if 'mmtradevol' in kwargs and 'mmtradetime' in kwargs:
             try:
-                volax.bar(kwargs['mmtradevol'])
+                tmpvol = np.zeros(self.SpreadValue.shape)
+                mmtradetime = kwargs['mmtradetime']
+                mmtradevol = kwargs['mmtradevol']
+                tmpdict = dict(zip(mmtradetime, mmtradevol))
+                for ii in range(len(self.TickTime)):
+                    if self.TickTime[ii].replace(microsecond=0) in tmpdict:
+                        tmpvol[ii] = tmpdict[self.TickTime[ii].replace(microsecond=0)]
+                volax.bar(range(len(self.TickTime)), tmpvol, color='deeppink')
             except:
                 volax = ax.twinx()
+                tmpvol = np.zeros(self.SpreadValue.shape)
+                mmtradetime = kwargs['mmtradetime']
+                mmtradevol = kwargs['mmtradevol']
+                tmpdict = dict(zip(mmtradetime, mmtradevol))
+                for ii in range(len(self.TickTime)):
+                    if self.TickTime[ii].replace(microsecond=0) in tmpdict:
+                        tmpvol[ii] = tmpdict[self.TickTime[ii].replace(microsecond=0)]
                 volax.set_ylabel('Volume')
                 volax.bar(range(len(self.SpreadValue)), kwargs['mmtradevol'], color='deeppink')
-
-
         ax.set_xlabel('Time Label')
         ax.set_ylabel('Spread Value')
         ax.grid(True)
@@ -579,20 +583,11 @@ class SpreadTickData(object):
             fig.savefig(savingpath+re.sub(' |\n', '_', titlestr))
 
 
-class OrderData(object):
-    """Order Data at Tick Level
+class ExecData(object):
+    """Exec Data at Tick Level
 
     Attributes:
         Contract : a string represents the contract name
-        OrderTime : a datetime array represents the time of order (accurate to second)
-        OrderDate : a datetime array represents the trading date
-        AskVolume : a float array represents the volume of Ask price we quote
-        AskPrice : a float array represents the ask prices we quote
-        BidVolume : a float array represents the volume of Bid price we quote
-        BidPrice : a float array represents the bid prices we quote
-        MidPrice : a float array represents the mid prices of bid and ask prices we quoted
-        TheoPrice: a float array represents the theoretical price calculated
-        OrderSeqNum: an int array represents the Sequence Number of every order
         ExecTime : a datetime array represents time of execution of order
         ExecPrice : a float array represents the price of execution
         ExecDirect : an int array represents the direction of execution, -1 stands for sell and 1 stands for buy
@@ -602,38 +597,39 @@ class OrderData(object):
 
 
 
-
-
-
-
     """
     def __init__(self, contract=''):
         self.Contract = contract
-        self.OrderTime = dt.datetime(1900, 1, 1, 0, 0, 0)
-        self.OrderDate = dt.datetime(1900, 1, 1)
         self.ExecTime = dt.datetime(1900, 1, 1, 0, 0, 0)
         self.ExecVolume = np.nan
         self.ExecDirect = np.nan
         self.ExecPrice = np.nan
         self.ExecOIDir = np.nan
         self.ExecSeqNum = np.nan
-        self.AskVolume = np.nan
-        self.AskPrice = np.nan
-        self.MidPrice = np.nan
-        self.BidPrice = np.nan
-        self.BidVolume = np.nan
-        self.TheoPrice = np.nan
-        self.OrderSeqNum =np.nan
 
 
-
-    def readData(self,orderfile,execfile,contract):
+    def readData(self,execfile,contract,date,predate):
         self.Contract = contract
-        ordercsv = read_csv(orderfile)
-        execcsv = read_csv(execfile)
+        execs = read_csv(execfile, encoding='gbk')
         # order data processing
-        ordercsv = ordercsv[ordercsv['委托合约'] == contract]
-        execcsv = execcsv[execcsv['成交合约'] == contract]
+        execs = execs[execs['成交合约'] == contract]
+        execs = execs.sort_values(by='报单编号')
+        def timeprocess(timestr, date, predate):
+            predatenxt = dt.datetime.strftime(dt.datetime.strptime(predate, '%Y%m%d') + dt.timedelta(1), '%Y%m%d')
+            [hr,mn,sc] = re.split(':', timestr)
+            if int(hr) > 16:
+                return predate[:4]+'-'+predate[4:6]+'-'+predate[6:]+' '+timestr
+            elif int(hr) < 3:
+                return predatenxt[:4]+'-'+predatenxt[4:6]+'-'+predatenxt[6:]+' '+timestr
+            else:
+                return date[:4]+'-'+date[4:6]+'-'+date[6:]+' '+timestr
+        exectimeline = execs['成交时间'].apply(timeprocess, args=(date, predate)).values
+        self.ExecSeqNum = np.array(execs['报单编号'])
+        self.ExecPrice = np.array(execs['成交价格'])
+        self.ExecVolume = np.array(execs['手数'])
+        self.ExecDirect = np.where(execs['买卖'].apply(lambda x: '买' in x), 1, -1)
+        self.ExecOIDir = np.where(execs['开平'].apply(lambda x: '开' in x), 1, -1)
+        self.ExecTime = np.array([dt.datetime.strptime(x, '%Y-%m-%d %H:%M:%S') for x in exectimeline])
 
 
 
