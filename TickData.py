@@ -205,9 +205,9 @@ class TickData(object):
         vpinvalue = np.empty([1, 1])
         for date in calendar:
             # truncate tick data of every data, leave the first and last lines of tick data
-            tdDeltaPrice = self.LastPrice[self.TickDate == date][1:-1] - self.LastPrice[self.TickDate == date][:-2]
-            tdVolume = self.Volume[self.TickDate == date][1:-1]
-            tdTickTime = self.TickTime[self.TickDate == date][1:-1]
+            tdDeltaPrice = self.LastPrice[self.TickDate == date][2:-1] - self.LastPrice[self.TickDate == date][1:-2]
+            tdVolume = self.Volume[self.TickDate == date][2:-1]
+            tdTickTime = self.TickTime[self.TickDate == date][2:-1]
             tdcdf = norm.cdf(tdDeltaPrice / sigma)
             tdvpin_time = [self.TickTime[self.TickDate == date][0], ]
             tdvpin_value = np.zeros([1])
@@ -253,8 +253,6 @@ class TickData(object):
     def toQuote(self, length = 1, type = ''):
         pass
 
-    def truncate(self,):
-        pass
 
 
 class VPINData(object):
@@ -490,19 +488,26 @@ class SpreadTickData(object):
         print("TickDate in {" + strlist[:-1] + '}')
         print("TickTime Length = %d | SpreadValue Length = %d " % (len(self.TickTime), len(self.SpreadValue)))
 
-    def BollBand(self, alpha=2, mean=np.nan, std=np.nan):
-        ''' calculate the bollinger band based on paras transed
+    def BollBand(self, alpha=2, winlen=600, startlen=300):
+        ''' calculate the bollinger band
 
-        :param alpha:
-        :param mean:
-        :param std:
-        :return:
         '''
 
-        lowerband = np.full(self.SpreadValue.shape, mean - alpha * std)
-        upperband = np.full(self.SpreadValue.shape, mean + alpha * std)
+        lowerband = np.full(self.SpreadValue.shape, np.nan)
+        upperband = np.full(self.SpreadValue.shape, np.nan)
+        for ii in range(startlen, winlen):
+            mean = self.SpreadValue[:ii].mean()
+            std = self.SpreadValue[:ii].std()
+            lowerband[ii] = mean - alpha * std
+            lowerband[ii] = mean + alpha * std
+        for ii in range(winlen, self.SpreadValue.shape[0]):
+            mean = self.SpreadValue[ii-winlen:ii].mean()
+            std = self.SpreadValue[ii-winlen:ii].std()
+            lowerband[ii] = mean - alpha * std
+            upperband[ii] = mean + alpha * std
 
         return lowerband, upperband
+
 
     def plot(self, savingpath='', **kwargs):
         '''
@@ -515,6 +520,8 @@ class SpreadTickData(object):
         for date in np.unique(self.TickDate):
             titlestr += " " + dt.datetime.strftime(date,'%Y%m%d')
         titlestr += '\n'
+        if 'titlefix' in kwargs:
+            titlestr += kwargs['titlefix']
         fig = plt.figure(figsize=(16,9))
         ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
 
@@ -543,44 +550,57 @@ class SpreadTickData(object):
         ax.tick_params(rotation=45)
         # ax.minorticks_on()
         ax.plot(self.SpreadValue, label='Spread Value', linewidth=0.3)
-        if 'lowerband' in kwargs:
-            ax.plot(kwargs['lowerband'], label='Lower Band', color='green')
-            ax.fill_between(range(len(self.SpreadValue)),kwargs['lowerband'],self.SpreadValue.min(),where=self.SpreadValue < kwargs['lowerband'], facecolors='green')
-        if 'upperband' in kwargs:
-            ax.plot(kwargs['upperband'], label='Upper Band', color='red')
-            ax.fill_between(range(len(self.SpreadValue)), self.SpreadValue.max(),self.SpreadValue.min(), where=self.SpreadValue > kwargs['upperband'], facecolors='red')
-        if 'dutyvolume' in kwargs:
-            volax = ax.twinx()
-            volax.set_ylabel('Volume')
-            volax.bar(range(len(self.SpreadValue)), kwargs['dutyvolume'], color='cyan')
-        if 'mmtradevol' in kwargs and 'mmtradetime' in kwargs:
-            try:
-                tmpvol = np.zeros(self.SpreadValue.shape)
-                mmtradetime = kwargs['mmtradetime']
-                mmtradevol = kwargs['mmtradevol']
-                tmpdict = dict(zip(mmtradetime, mmtradevol))
-                for ii in range(len(self.TickTime)):
-                    if self.TickTime[ii].replace(microsecond=0) in tmpdict:
-                        tmpvol[ii] = tmpdict[self.TickTime[ii].replace(microsecond=0)]
-                volax.bar(range(len(self.TickTime)), tmpvol, color='deeppink')
-            except:
-                volax = ax.twinx()
-                tmpvol = np.zeros(self.SpreadValue.shape)
-                mmtradetime = kwargs['mmtradetime']
-                mmtradevol = kwargs['mmtradevol']
-                tmpdict = dict(zip(mmtradetime, mmtradevol))
-                for ii in range(len(self.TickTime)):
-                    if self.TickTime[ii].replace(microsecond=0) in tmpdict:
-                        tmpvol[ii] = tmpdict[self.TickTime[ii].replace(microsecond=0)]
-                volax.set_ylabel('Volume')
-                volax.bar(range(len(self.SpreadValue)), kwargs['mmtradevol'], color='deeppink')
         ax.set_xlabel('Time Label')
         ax.set_ylabel('Spread Value')
-        ax.grid(True)
         ax.set_title(titlestr)
-        plt.show()
+        if 'lowerband' in kwargs:
+            x = np.arange(len(self.SpreadValue))
+            ax.plot(kwargs['lowerband'], label='Lower Band', color='green')
+            ax.fill_between(x,kwargs['lowerband'], self.SpreadValue.min(), where=self.SpreadValue < kwargs['lowerband'], facecolors='green')
+            ax.scatter(x[self.SpreadValue < kwargs['lowerband']], self.SpreadValue[self.SpreadValue < kwargs['lowerband']], c='green', alpha=0.3)
+            ax.text(x[-1]+1,kwargs['lowerband'][-1]-1,'%d in %d ' % (sum(self.SpreadValue < kwargs['lowerband']), len(self.TickTime)))
+        if 'upperband' in kwargs:
+            x = np.arange(len(self.SpreadValue))
+            ax.plot(kwargs['upperband'], label='Upper Band', color='red')
+            ax.fill_between(x, self.SpreadValue.max(),kwargs['upperband'], where=self.SpreadValue > kwargs['upperband'], facecolors='red')
+            ax.scatter(x[self.SpreadValue > kwargs['upperband']],self.SpreadValue[self.SpreadValue > kwargs['upperband']], c='red', alpha=0.3)
+            ax.text(x[-1]+1,kwargs['upperband'][-1]+1,'%d in %d ' % (sum(self.SpreadValue > kwargs['upperband']), len(self.TickTime)))
+        if 'dutyvolume' in kwargs:
+            volax = ax.twinx()
+            volylab = 'volume'
+            volax.bar(range(len(self.SpreadValue)), kwargs['dutyvolume'], color='cyan')
+        if 'mmtradevol' in kwargs and 'mmtradetime' in kwargs:
+            if 'dutyvolume' not in kwargs:
+                volax = ax.twinx()
+                volylab='Volume'
+            mmtradetime = kwargs['mmtradetime']
+            mmtradevol = kwargs['mmtradevol']
+            tmpdict = dict(zip(mmtradetime, mmtradevol))
+            x = np.arange(len(self.TickTime))
+            def f(x,y):
+                z = x.replace(microsecond=0)
+                if z in y:
+                    return y[z]
+                else:
+                    return 0
+            vecf = np.vectorize(f)
+            tmpvol = vecf(self.TickTime, tmpdict)
+            volax.plot(x[tmpvol > 0], tmpvol[tmpvol > 0],'o', ms=2, c='b')
+            volylab = volylab + '\n %d hands total' % mmtradevol.sum()
+            if 'lowerband' in kwargs:
+                lessbool = (self.SpreadValue < kwargs['lowerband']) & (tmpvol > 0)
+                volax.plot(x[lessbool],tmpvol[lessbool],'v', c='lime')
+                lesstime = self.TickTime[self.SpreadValue < kwargs['lowerband']]
+                volylab = volylab + '\n %d hands when low break' % sum([tmpdict[x] for x in np.intersect1d(lesstime, mmtradetime)])
+            if 'upperband' in kwargs:
+                morebool = (self.SpreadValue > kwargs['upperband']) & (tmpvol > 0)
+                volax.plot(x[morebool],tmpvol[morebool],'^', c='crimson')
+                moretime = self.TickTime[self.SpreadValue > kwargs['upperband']]
+                volylab = volylab + '\n %d hands when up break' % sum([tmpdict[x] for x in np.intersect1d(moretime, mmtradetime)])
+            volax.set_ylabel(volylab)
         if savingpath != '':
             fig.savefig(savingpath+re.sub(' |\n', '_', titlestr))
+        plt.close()
 
 
 class ExecData(object):
